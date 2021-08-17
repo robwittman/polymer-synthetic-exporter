@@ -1,0 +1,18 @@
+defaultType: browser
+name: Google Search
+steps:
+  - action: visit
+    name: visit google
+    options:
+      url: https://google.com
+  - action: input
+    name: search
+    inputs:
+      - element:
+          identifier: 'input[name="q"]'
+        action: input
+        value: "we're searching"
+      - name: submit
+        element:
+          identifier: 'input[name="Google Search"]'
+        action: click
