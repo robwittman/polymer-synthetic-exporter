@@ -8,11 +8,12 @@ steps:
   - action: input
     name: search
     inputs:
-      - element:
+      - name: input search params
+        element:
           identifier: 'input[name="q"]'
         action: input
         value: "we're searching"
       - name: submit
         element:
-          identifier: 'input[name="Google Search"]'
+          identifier: 'input[value="Google Search"]'
         action: click

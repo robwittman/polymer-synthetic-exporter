@@ -23,6 +23,7 @@ type PolymerConfig struct {
 
 type Step struct {
 	Action string `yaml:"action"`
+	Type   string `yaml:"type"`
 	Name   string `yaml:"name"`
 	Inputs []StepInput `yaml:"inputs"`
 	Options map[string]string `yaml:"options"`
@@ -93,6 +94,11 @@ func probeHandler(w http.ResponseWriter, r *http.Request, e *Executor) {
 	start := time.Now()
 
 	for _, step := range e.Config.Steps {
+		stepType := step.Type
+		if stepType == "" {
+			stepType = e.Config.DefaultType
+		}
+
 		log.Println(step.Name)
 		durationGauge := prometheus.NewGauge(
 			prometheus.GaugeOpts{
@@ -121,45 +127,31 @@ func probeHandler(w http.ResponseWriter, r *http.Request, e *Executor) {
 
 		switch step.Action {
 		  case "visit":
-		  	log.Println("Connecting to specified URL")
-			page = browser.MustConnect().MustPage(step.Options["url"])
+		  	page = browser.MustConnect().MustPage(step.Options["url"])
+			page.MustWaitLoad()
+			break
 		  case "input":
 		  	for _, input := range step.Inputs {
 		  		element := page.MustElement(input.Element.Identifier)
 		  		switch input.Action {
-				  case "click":
+				  case "input":
 				  	element.MustInput(input.Value);
-				  case "submit":
-				    element.MustClick();
+				  	break
+				  case "click":
+				  	element.MustClick();
+				  	break
 				}
 			}
 		}
 		// End logic execution
 
 		stepDuration := time.Since(stepStart).Seconds()
-		log.Println(stepDuration)
 		durationGauge.Set(stepDuration)
 	}
 
 	//success := prober(ctx, target, module, registry, sl)
 	duration := time.Since(start).Seconds()
 	probeDurationGauge.Set(duration)
-
-	//if success {
-	//	probeSuccessGauge.Set(1)
-	//	level.Info(sl).Log("msg", "Probe succeeded", "duration_seconds", duration)
-	//} else {
-	//	level.Error(sl).Log("msg", "Probe failed", "duration_seconds", duration)
-	//}
-
-	//debugOutput := DebugOutput(&module, &sl.buffer, registry)
-	//rh.Add(moduleName, target, debugOutput, success)
-	//
-	//if r.URL.Query().Get("debug") == "true" {
-	//	w.Header().Set("Content-Type", "text/plain")
-	//	w.Write([]byte(debugOutput))
-	//	return
-	//}
 
 	h := promhttp.HandlerFor(registry, promhttp.HandlerOpts{})
 	h.ServeHTTP(w, r)
